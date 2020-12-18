@@ -1,0 +1,2 @@
+# chinese_word_segmentation
+基于BERT的中文分词模型的一个简单demo
