@@ -24,7 +24,8 @@ class Configs:
 class BertCHW(nn.Module):
     """ Bert for Chinese Word Segmentation.
     """
-    def __init__(self, bert_model: BertModel, configs: Configs):
+    def __init__(self, bert_model: BertModel, configs=Configs()):
+        super(BertCHW, self).__init__()
         self.bert_model = bert_model
         self.dropout = nn.Dropout(configs.dropout)
         self.activate_layer = configs.activate
@@ -46,7 +47,7 @@ class BertCHW(nn.Module):
         x = self.dropout(sequence_output)
         for fc in self.classifier[:-1]:
             x = self.activate_layer(fc(x))
-        x = self.fc(x)
+        x = self.classifier[-1](x)
         # [batch size, sequence len, 4]
         return x
 

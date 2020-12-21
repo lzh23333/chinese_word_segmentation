@@ -11,6 +11,7 @@
 '''
 from torch.utils.data import Dataset
 from tqdm import tqdm
+import json
 import re
 from hanziconv import HanziConv
 
@@ -108,3 +109,22 @@ def seg_char(sent):
         chars = [w for w in chars if len(w.strip())>0]
         result += chars
     return result
+
+
+class DatasetCHW(Dataset):
+
+    def __init__(self, filename, max_len=512):
+        """
+
+        Args:
+            filename (str): 经过预处理的中文分词数据集文件路径.
+        """
+        with open(filename, "r", encoding="utf-8") as f:
+            self.data = [x for x in json.load(f) if len(x[0]) < max_len]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return  self.data[index][0], self.data[index][1]
+
