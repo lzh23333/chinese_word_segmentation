@@ -23,20 +23,22 @@ for n, filename in enumerate(corpus_files):
     with open(filename, "r", encoding="utf-8") as f:
         data = json.load(f)
     updates = []
-    for tokens, labels in tqdm(data):
+    for tokens, labels in tqdm(data[:1000]):
+        # print(len(tokens), len(labels))
         update_ids = []
         update_labels = []
         for i, token in enumerate(tokens):
             ids = tokenizer([token])["input_ids"][0]
             if len(ids) > 3:
-                # update_tokens += tokenizer.convert_ids_to_tokens(ids[1:-1])
+                # print(token)
                 update_ids += ids[1:-1]
-                update_labels += ([BEGIN] + [MID] * (len(ids) - 2) + [END])
+                # print(ids)
+                update_labels += ([BEGIN] + [MID] * (len(ids) - 4) + [END])
             else:
                 # update_tokens.append(token)
                 update_ids += ids[1:-1]
                 update_labels.append(labels[i])
-            # update_tokens.append(token)
+        update_ids = [102] + update_ids + [103] # add [CLS] and [SEP]
         updates.append((update_ids, update_labels))
     with open(dst[n], "w", encoding="utf-8") as f:
         f.write(json.dumps(updates, ensure_ascii=False))
