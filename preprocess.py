@@ -11,11 +11,13 @@
 
 from tqdm import tqdm
 import json
+from transformers import BertTokenizer
 from utils import text_process, text_tagging
 
 
 train_corpus_labels = []
 test_corpus_labels = []
+tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
 datasets = ["as", "cityu", "msr", "pku"]
 is_traditions = [True, True, False, False]
 for i in range(4):

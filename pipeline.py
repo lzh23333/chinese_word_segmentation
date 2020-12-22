@@ -23,7 +23,6 @@ def main():
 
     train_set = DatasetCHW(configs.train_filename)
     test_set = DatasetCHW(configs.test_filename)
-    tokenizer = configs.tokenizer
 
     L = len(train_set)
     train_num = int(L * configs.ratio)
@@ -47,31 +46,30 @@ def main():
         shuffle=True,
         collate_fn=collate_fn
     )
+    best_loss = float("inf")
     for _ in range(configs.epochs):
         train(
             configs.model,
             train_loader,
             configs.criterion,
             configs.optimizer,
-            tokenizer,
             configs.device,
             writer=writer
         )
-        evaluation(
+        eval_loss = evaluation(
             configs.model,
             val_loader,
             configs.criterion,
-            tokenizer,
             configs.device,
             writer=writer
         )
-    torch.save(configs.model.state_dict(), configs.dst)
-
+        if eval_loss < best_loss:
+            torch.save(configs.model.state_dict(), configs.dst)
+            best_loss = eval_loss
     # test
     preds, trues = test(
         configs.model,
         test_loader,
-        tokenizer,
         configs.device
     )
     print(classification_report(trues, preds))

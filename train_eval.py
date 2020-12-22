@@ -13,12 +13,18 @@ import enum
 import torch
 from tqdm import tqdm
 from functools import reduce
+import numpy as np
 
 
 def collate_fn(x):
     inputs = [a[0] for a in x]
     labels = [a[1] for a in x]
-    return inputs, labels
+    max_len = max([len(x) for x in inputs])
+    attention_mask = [([1] * len(a)) + ([0] * (max_len - len(a))) for a in inputs]
+    inputs = [a + ([0] * (max_len - len(a))) for a in inputs]
+    inputs = torch.LongTensor(inputs)
+    attention_mask = torch.IntTensor(attention_mask)
+    return inputs, labels, attention_mask
 
 
 def output_resize(outputs, labels, attention_mask):
@@ -37,13 +43,14 @@ def output_resize(outputs, labels, attention_mask):
         len_i = torch.sum(attention_mask[i])
         p = outputs[i, 1: len_i-1, :]
         preds.append(p)
+        labels[i] = labels[i][:len_i-2]
     outputs = torch.cat(preds)
     labels = torch.LongTensor(reduce(lambda a, b: a + b, labels))
     return outputs, labels
 
 
 def train(model, dataloader, criterion, optimizer,
-          tokenizer, device, max_len=300, writer=None):
+          device, writer=None, T=50):
     """训练代码，所有相关配置在函数外配置完成
 
     Args:
@@ -54,28 +61,27 @@ def train(model, dataloader, criterion, optimizer,
     model.to(device)
     model.train()
     total_loss = 0
-
+    recent_loss = []
     for i, batch in tqdm(enumerate(dataloader), desc="training"):
-        inputs, labels = batch
-        inputs = tokenizer(inputs, return_tensors="pt", max_length=max_len,
-                           padding=True, is_split_into_words=True)
-        outputs = model(inputs["input_ids"].to(device),
-                        inputs["attention_mask"].to(device))
+        sentences, labels, attention_mask = batch
+        outputs = model(sentences.to(device),
+                        attention_mask.to(device))
         outputs, labels = output_resize(outputs, labels,
-                                        inputs["attention_mask"])
-        print(outputs.size(), labels.size())
+                                        attention_mask)
         loss = criterion(outputs, labels.to(device))
+        recent_loss.append(loss.item())
         total_loss += loss.item()
-        if i % 20 == 0 and writer is not None:
-            writer.add_scalar("Loss/Train", loss.item(), i // 20)
+        if i % T == 0 and writer is not None:
+            writer.add_scalar("Loss/Train", np.mean(recent_loss), i // T)
+            recent_loss = []
         loss.backward()
         optimizer.step()
 
     return total_loss / len(dataloader)
 
 
-def evaluation(model, dataloader, criterion, tokenizer,
-               device, max_len=300, writer=None):
+def evaluation(model, dataloader, criterion,
+               device, writer=None, T=50):
     """验证集测试代码，所有相关配置在函数外配置完成
 
     Returns:
@@ -84,26 +90,24 @@ def evaluation(model, dataloader, criterion, tokenizer,
     model.to(device)
     model.eval()
     eval_loss = 0
-
+    recent_loss = []
     for i, batch in tqdm(enumerate(dataloader), desc="eval"):
-        inputs, labels = batch
-        inputs = tokenizer(inputs, return_tensors="pt", max_length=max_len,
-                           padding=True, is_split_into_words=True)
-        outputs = model(
-            inputs["input_ids"].to(device),
-            inputs["attention_mask"].to(device)
-        )
+        sentences, labels, attention_mask = batch
+        outputs = model(sentences.to(device),
+                        attention_mask.to(device))
         outputs, labels = output_resize(outputs, labels,
-                                        inputs["attention_mask"])
+                                        attention_mask)
         loss = criterion(outputs, labels.to(device))
-        if i % 20 == 0 and writer is not None:
-            writer.add_scalar("Loss/Valid", loss.item(), i // 20)
+        recent_loss.append(loss.item())
+        if i % T == 0 and writer is not None:
+            writer.add_scalar("Loss/Valid", np.mean(recent_loss), i // T)
+            recent_loss = []
         eval_loss += loss.item()
 
     return eval_loss / len(dataloader)
 
 
-def test(model, testloader, tokenizer, device, max_len=300,):
+def test(model, testloader, device):
     """准确率测试
 
     Returns:
@@ -116,15 +120,11 @@ def test(model, testloader, tokenizer, device, max_len=300,):
     preds = []
     trues = []
     for i, batch in tqdm(enumerate(testloader), desc="testing"):
-        inputs, labels = batch
-        inputs = tokenizer(inputs, return_tensors="pt",
-                           max_length=max_len,
-                           padding=True, is_split_into_words=True)
-        outputs = model(
-            inputs["input_ids"].to(device),
-            inputs["attention_mask"].to(device)
-        )
-        outputs, _ = output_resize(outputs, labels, inputs["attention_mask"])
+        sentences, labels, attention_mask = batch
+        outputs = model(sentences.to(device),
+                        attention_mask.to(device))
+        outputs, _ = output_resize(outputs, labels,
+                                   attention_mask)
         outputs = torch.argmax(outputs, dim=1).tolist()
         preds += outputs
         trues += reduce(lambda a, b: a + b, labels)
