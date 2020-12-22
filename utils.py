@@ -113,18 +113,17 @@ def seg_char(sent):
 
 class DatasetCHW(Dataset):
 
-    def __init__(self, filename, max_len=512):
+    def __init__(self, filename):
         """
 
         Args:
             filename (str): 经过预处理的中文分词数据集文件路径.
         """
         with open(filename, "r", encoding="utf-8") as f:
-            self.data = [x for x in json.load(f) if len(x[0]) < max_len]
+            self.data = json.load(f)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        return  self.data[index][0], self.data[index][1]
-
+        return self.data[index][0], self.data[index][1]
