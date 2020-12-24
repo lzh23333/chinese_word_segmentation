@@ -12,16 +12,21 @@ class PipelineConfigs:
     def __init__(self):
         # model configs
         self.bert_model = BertModel.from_pretrained("bert-base-chinese")
+        # self.bert_model = BertModel.from_pretrained(
+        #     "./models/bert-base-chinese",
+        #     local_files_only=True
+        # )
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
         self.classifier_configs = Configs()
         self.model = BertCHW(self.bert_model, self.classifier_configs)
+
         # train configs
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam([
             {"params": self.model.bert_model.parameters(), "lr": 1e-5},
             {"params": self.model.classifier.parameters(), "lr": 1e-2}
         ])
-        self.batch_size = 3
+        self.batch_size = 4
         self.device = torch.device("cuda" if torch.cuda.is_available()
                                    else "cpu")
         self.epochs = 4

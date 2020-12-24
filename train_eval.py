@@ -50,7 +50,7 @@ def output_resize(outputs, labels, attention_mask):
 
 
 def train(model, dataloader, criterion, optimizer,
-          device, writer=None, T=50):
+          device, writer=None, T=50, clip=1):
     """训练代码，所有相关配置在函数外配置完成
 
     Args:
@@ -71,11 +71,15 @@ def train(model, dataloader, criterion, optimizer,
         loss = criterion(outputs, labels.to(device))
         recent_loss.append(loss.item())
         total_loss += loss.item()
-        if i % T == 0 and writer is not None:
+        if i % T == 0 and recent_loss != [] and writer is not None:
             writer.add_scalar("Loss/Train", np.mean(recent_loss), i // T)
             recent_loss = []
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        del loss, outputs
 
     return total_loss / len(dataloader)
 
@@ -99,10 +103,12 @@ def evaluation(model, dataloader, criterion,
                                         attention_mask)
         loss = criterion(outputs, labels.to(device))
         recent_loss.append(loss.item())
-        if i % T == 0 and writer is not None:
+        if i % T == 0 and recent_loss != [] and writer is not None:
             writer.add_scalar("Loss/Valid", np.mean(recent_loss), i // T)
             recent_loss = []
         eval_loss += loss.item()
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
 
     return eval_loss / len(dataloader)
 

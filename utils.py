@@ -125,7 +125,8 @@ class DatasetCHW(Dataset):
             tokenizer (transformer.PreTrainedTokenizer): 对字符串进行tokenizer.
         """
         with open(filename, "r", encoding="utf-8") as f:
-            self.data = [x for x in json.load(f) if len(x) <= max_len]
+            self.data = [x for x in json.load(f)
+                         if len(x[0]) <= max_len and len(x[0]) > 2]
 
     def __len__(self):
         return len(self.data)
