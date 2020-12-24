@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import classification_report
 from configs import PipelineConfigs
-from utils import DatasetCHW
+from utils import DatasetCWS
 from train_eval import train, evaluation, collate_fn, test
 
 
@@ -21,8 +21,11 @@ def main():
     configs = PipelineConfigs()
     writer = SummaryWriter()
 
-    train_set = DatasetCHW(configs.train_filename)
-    test_set = DatasetCHW(configs.test_filename)
+    attrs = vars(configs)
+    for k, v in attrs.items():
+        print(k, v)
+    train_set = DatasetCWS(configs.train_filename, max_len=configs.max_len)
+    test_set = DatasetCWS(configs.test_filename, max_len=configs.max_len)
 
     L = len(train_set)
     train_num = int(L * configs.ratio)
@@ -48,7 +51,7 @@ def main():
     )
     best_loss = float("inf")
     for _ in range(configs.epochs):
-        train(
+        train_loss = train(
             configs.model,
             train_loader,
             configs.criterion,
@@ -63,6 +66,8 @@ def main():
             configs.device,
             writer=writer
         )
+        print(f"Train/Loss: {train_loss}")
+        print(f"Eval/Loss:  {eval_loss}")
         if eval_loss < best_loss:
             torch.save(configs.model.state_dict(), configs.dst)
             best_loss = eval_loss
