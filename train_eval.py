@@ -62,7 +62,8 @@ def train(model, dataloader, criterion, optimizer,
     model.train()
     total_loss = 0
     recent_loss = []
-    for i, batch in tqdm(enumerate(dataloader), desc="training"):
+    tbar = tqdm(enumerate(dataloader), desc="training", leave=True)
+    for i, batch in tbar:
         sentences, labels, attention_mask = batch
         outputs = model(sentences.to(device),
                         attention_mask.to(device))
@@ -77,6 +78,8 @@ def train(model, dataloader, criterion, optimizer,
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
+        tbar.set_description(f"trainning loss: {loss.item()}")
+        tbar.refresh()
         if device.type == "cuda":
             torch.cuda.empty_cache()
         del loss, outputs
@@ -95,7 +98,8 @@ def evaluation(model, dataloader, criterion,
     model.eval()
     eval_loss = 0
     recent_loss = []
-    for i, batch in tqdm(enumerate(dataloader), desc="eval"):
+    tbar = tqdm(enumerate(dataloader), desc="eval", leave=True)
+    for i, batch in tbar:
         sentences, labels, attention_mask = batch
         outputs = model(sentences.to(device),
                         attention_mask.to(device))
@@ -107,6 +111,8 @@ def evaluation(model, dataloader, criterion,
             writer.add_scalar("Loss/Valid", np.mean(recent_loss), i // T)
             recent_loss = []
         eval_loss += loss.item()
+        tbar.set_description(f"eval loss: {loss.item()}")
+        tbar.refresh()
         if device.type == "cuda":
             torch.cuda.empty_cache()
 

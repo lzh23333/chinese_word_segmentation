@@ -115,7 +115,7 @@ def seg_char(sent):
     return result
 
 
-class DatasetCHW(Dataset):
+class DatasetCWS(Dataset):
 
     def __init__(self, filename, max_len=300):
         """
