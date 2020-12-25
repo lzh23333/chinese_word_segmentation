@@ -8,8 +8,7 @@
 @Contact :   robinlin163@163.com
 @Desc    :   Chinese Word Segmentation With Bert
 '''
-from transformers import BertTokenizer, BertModel
-import torch
+from transformers import BertModel
 import torch.nn as nn
 
 
@@ -21,11 +20,11 @@ class Configs:
         self.linears = [768, 256, 4]
 
 
-class BertCHW(nn.Module):
+class BertCWS(nn.Module):
     """ Bert for Chinese Word Segmentation.
     """
     def __init__(self, bert_model: BertModel, configs=Configs()):
-        super(BertCHW, self).__init__()
+        super(BertCWS, self).__init__()
         self.bert_model = bert_model
         self.dropout = nn.Dropout(configs.dropout)
         self.activate_layer = configs.activate
@@ -50,4 +49,3 @@ class BertCHW(nn.Module):
         x = self.classifier[-1](x)
         # [batch size, sequence len, 4]
         return x
-
