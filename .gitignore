@@ -1,6 +1,7 @@
 /data/*
 /runs/*
 /models/*
+*.zip
 *.pt
 # Byte-compiled / optimized / DLL files
 __pycache__/

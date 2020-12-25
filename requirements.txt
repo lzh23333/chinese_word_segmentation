@@ -1,0 +1,8 @@
+torch>=1.7.0
+transformer>=4.0.1
+tqdm>=4.40.2
+thulac>=0.2.1
+tensorboard>=2.4.0
+hanziconv>=0.3.2
+numpy
+scikit-learn
